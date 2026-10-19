@@ -1,0 +1,36 @@
+name: CI
+
+# Run on every push and on pull requests, so broken lint, formatting or tests
+# are caught before anything is merged.
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install uv and pin the Python floor of the project (requires-python >=3.12).
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      # Install runtime + dev dependencies into an isolated environment.
+      - name: Install dependencies
+        run: uv sync
+
+      # Linting: catch bugs and style violations.
+      - name: Ruff lint
+        run: uv run ruff check --output-format=github .
+
+      # Formatting: fail if any file is not already formatted.
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      # The test suite.
+      - name: Tests
+        run: uv run pytest

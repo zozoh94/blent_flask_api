@@ -1,0 +1,29 @@
+[project]
+name = "digimarket-api"
+version = "0.1.0"
+description = "DigiMarket e-commerce REST API (Flask)"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.0",
+    "flask-sqlalchemy>=3.1",
+    "flask-jwt-extended>=4.6",
+]
+
+# Dev-only tools, installed by `uv sync` but kept out of the runtime deps.
+[dependency-groups]
+dev = [
+    "pytest>=8,<9",
+    "ruff>=0.17.1",
+]
+
+# This is an application, not a distributable library: uv manages the
+# environment but does not try to build/install the project itself.
+[tool.uv]
+package = false
+
+# Pytest config lives here now (replaces pytest.ini). pythonpath = ["."] makes
+# the top-level `app` package importable without installing it.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+python_files = ["test_*.py"]
