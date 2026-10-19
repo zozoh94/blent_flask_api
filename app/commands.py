@@ -58,6 +58,25 @@ def seed_command():
     click.echo("Seed complete.")
 
 
+@click.command("grant-admin")
+@click.option(
+    "--email",
+    prompt="Enter user email",
+    help="Email of the user to grant admin privileges",
+)
+@with_appcontext
+def grant_admin_command(email):
+    """Grant admin privileges to a user."""
+    user = db.session.scalar(db.select(User).filter_by(email=email))
+    if user:
+        user.role = "admin"
+        db.session.commit()
+        click.echo(f"Admin privileges granted to {email}.")
+    else:
+        click.echo("User not found.")
+
+
 def register_commands(app: Flask) -> None:
     app.cli.add_command(init_db_command)
     app.cli.add_command(seed_command)
+    app.cli.add_command(grant_admin_command)
