@@ -19,6 +19,10 @@ def create_app(test_config=None):
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
+    from app.commands import register_commands
+
+    register_commands(app)
+
     with app.app_context():
         from app import models  # noqa: F401
 
