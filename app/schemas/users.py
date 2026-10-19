@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
@@ -19,3 +20,4 @@ class UserOut(BaseModel):
     email: EmailStr
     name: str
     role: str
+    created_at: datetime

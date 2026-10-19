@@ -4,7 +4,7 @@ from pydantic import ValidationError
 
 from app.extensions import db
 from app.models import User
-from app.schemas.users import LoginRequest, UserCreate  # adjust to your class names
+from app.schemas.users import LoginRequest, UserCreate, UserOut  # adjust to your class names
 
 bp = Blueprint("auth", __name__)
 
@@ -24,7 +24,7 @@ def register():
     user.password = data.password
     db.session.add(user)
     db.session.commit()
-    return jsonify(user.to_dict()), 201
+    return UserOut.model_validate(user).model_dump(mode="json"), 201
 
 
 @bp.post("/login")

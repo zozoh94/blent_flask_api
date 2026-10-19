@@ -4,6 +4,8 @@ They drive the real HTTP endpoints POST /api/auth/register and
 POST /api/auth/login end to end, asserting the contract a client relies on.
 """
 
+from datetime import datetime
+
 from flask_jwt_extended import decode_token
 
 # A valid signup payload reused across tests; individual tests override one
@@ -33,6 +35,10 @@ def test_register_creates_a_client_account(client):
     assert body["name"] == VALID_USER["name"]
     assert body["role"] == "client"
     assert "id" in body
+
+    # created_at is exposed as a timestamp the client can actually parse.
+    assert "created_at" in body
+    datetime.fromisoformat(body["created_at"])  # raises if not valid ISO 8601
 
     # The password must never leak back, in any form.
     assert "password" not in body
