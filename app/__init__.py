@@ -15,6 +15,10 @@ def create_app(test_config=None):
     db.init_app(app)
     jwt.init_app(app)
 
+    from app.auth.routes import bp as auth_bp
+
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
+
     with app.app_context():
         from app import models  # noqa: F401
 
