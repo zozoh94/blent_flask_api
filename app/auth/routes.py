@@ -4,7 +4,11 @@ from pydantic import ValidationError
 
 from app.extensions import db
 from app.models import User
-from app.schemas.users import LoginRequest, UserCreate, UserOut  # adjust to your class names
+from app.schemas.users import (
+    LoginRequest,
+    UserCreate,
+    UserOut,
+)  # adjust to your class names
 
 bp = Blueprint("auth", __name__)
 

@@ -27,4 +27,3 @@ class User(db.Model):
 
     def check_password(self, raw_password: str) -> bool:
         return check_password_hash(self._password_hash, raw_password)
-
