@@ -11,7 +11,7 @@ class User(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(unique=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(index=True)
     role: Mapped[str] = mapped_column(default="client")
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
 
