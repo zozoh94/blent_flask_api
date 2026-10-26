@@ -16,8 +16,10 @@ def create_app(test_config=None):
     jwt.init_app(app)
 
     from app.auth.routes import bp as auth_bp
+    from app.product.routes import bp as product_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(product_bp, url_prefix="/api/products")
 
     from app.commands import register_commands
 
