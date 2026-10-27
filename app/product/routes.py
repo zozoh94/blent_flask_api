@@ -1,9 +1,15 @@
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
+from pydantic import ValidationError
 
+from app.auth.decorators import admin_required
 from app.extensions import db
 from app.models import Product
 
-from .schemas import ProductDetailOut, ProductListOut
+from .schemas import (
+    ProductCreate,
+    ProductDetailOut,
+    ProductListOut,
+)
 
 bp = Blueprint("product", __name__)
 
@@ -51,3 +57,40 @@ def get_product(id: int):
     """Get a product by ID"""
     product = db.get_or_404(Product, id)
     return ProductDetailOut.model_validate(product).model_dump()
+
+
+@bp.post("")
+@admin_required
+def create_product():
+    """Create a product"""
+    try:
+        data = ProductCreate.model_validate(request.get_json())
+    except ValidationError as e:
+        return jsonify({"error": str(e)}), 400
+
+    product = Product(**data.model_dump())
+    db.session.add(product)
+    db.session.commit()
+    return ProductDetailOut.model_validate(product).model_dump(mode="json"), 201
+
+
+@bp.put("<id>")
+@admin_required
+def update_product(id: int):
+    """Update a product"""
+    product = db.get_or_404(Product, id)
+    data = ProductCreate.model_validate(request.get_json())
+    for key, value in data.model_dump().items():
+        setattr(product, key, value)
+    db.session.commit()
+    return ProductDetailOut.model_validate(product).model_dump()
+
+
+@bp.delete("<id>")
+@admin_required
+def delete_product(id: int):
+    """Delete a product"""
+    product = db.get_or_404(Product, id)
+    db.session.delete(product)
+    db.session.commit()
+    return "", 204
