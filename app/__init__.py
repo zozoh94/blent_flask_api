@@ -25,6 +25,10 @@ def create_app(test_config=None):
 
     register_commands(app)
 
+    from app.errors import register_error_handlers
+
+    register_error_handlers(app)
+
     with app.app_context():
         from app import models  # noqa: F401
 
