@@ -55,7 +55,7 @@ def get_products():
 @bp.get("<id>")
 def get_product(id: int):
     """Get a product by ID"""
-    product = db.get_or_404(Product, id)
+    product = db.get_or_404(Product, id, description="Product not found")
     return ProductDetailOut.model_validate(product).model_dump()
 
 
@@ -78,7 +78,7 @@ def create_product():
 @admin_required
 def update_product(id: int):
     """Update a product"""
-    product = db.get_or_404(Product, id)
+    product = db.get_or_404(Product, id, description="Product not found")
     data = ProductCreate.model_validate(request.get_json())
     for key, value in data.model_dump().items():
         setattr(product, key, value)
@@ -90,7 +90,7 @@ def update_product(id: int):
 @admin_required
 def delete_product(id: int):
     """Delete a product"""
-    product = db.get_or_404(Product, id)
+    product = db.get_or_404(Product, id, description="Product not found")
     db.session.delete(product)
     db.session.commit()
     return "", 204
