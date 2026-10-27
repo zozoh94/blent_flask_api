@@ -10,7 +10,7 @@ from flask import Flask
 from flask.cli import with_appcontext
 
 from app.extensions import db
-from app.models import User
+from app.models import Product, User
 
 
 @click.command("init-db")
@@ -39,10 +39,43 @@ SEED_USERS = [
 ]
 
 
+# Test catalog for the DigiMarket store (computer hardware).
+SEED_PRODUCTS = [
+    {
+        "name": "Clavier mécanique RGB",
+        "description": "Clavier mécanique à switches rouges, rétroéclairage RGB.",
+        "category": "Périphériques",
+        "price": 89.99,
+        "stock": 40,
+    },
+    {
+        "name": "Souris gaming sans fil",
+        "description": "Souris optique 16000 DPI, sans fil, 6 boutons programmables.",
+        "category": "Périphériques",
+        "price": 49.99,
+        "stock": 60,
+    },
+    {
+        "name": 'Écran 27" 144 Hz',
+        "description": "Moniteur 27 pouces QHD, dalle IPS, 144 Hz.",
+        "category": "Écrans",
+        "price": 299.00,
+        "stock": 15,
+    },
+    {
+        "name": "SSD NVMe 1 To",
+        "description": "Disque SSD NVMe PCIe 4.0, 1 To, jusqu'à 7000 Mo/s.",
+        "category": "Stockage",
+        "price": 109.90,
+        "stock": 80,
+    },
+]
+
+
 @click.command("seed")
 @with_appcontext
 def seed_command():
-    """Insert a small set of test users. Safe to re-run: existing ones are kept."""
+    """Insert a small set of test users and products. Safe to re-run."""
     for spec in SEED_USERS:
         # Skip anyone already there, so the command is idempotent.
         if db.session.scalar(db.select(User).filter_by(email=spec["email"])):
@@ -53,6 +86,15 @@ def seed_command():
         user.password = spec["password"]
         db.session.add(user)
         click.echo(f"+ {spec['email']} ({spec['role']})")
+
+    for spec in SEED_PRODUCTS:
+        # Products have no unique column, so guard on the name to stay idempotent.
+        if db.session.scalar(db.select(Product).filter_by(name=spec["name"])):
+            click.echo(f"- {spec['name']} already exists, skipped")
+            continue
+
+        db.session.add(Product(**spec))
+        click.echo(f"+ {spec['name']} ({spec['category']})")
 
     db.session.commit()
     click.echo("Seed complete.")
