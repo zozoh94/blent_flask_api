@@ -1,0 +1,318 @@
+################################################################################
+# DigiMarket API - live contract demo (VS Code REST Client)
+#
+# 1. Install the "REST Client" extension (id: humao.rest-client).
+# 2. Start from an empty database. This demo registers alice@ and bob@ and
+#    expects 201, so a leftover database from a previous run would answer 409
+#    instead, and the stock would already have moved. Delete the SQLite file
+#    (it lives in instance/app.db), then recreate and seed it:
+#        rm -f instance/app.db
+#        uv run flask --app app init-db && \
+#        uv run flask --app app seed && \
+#        uv run flask --app app run
+# 3. Click "Send Request" above each call, TOP TO BOTTOM: the token and id
+#    variables below are captured from earlier named requests, so you never
+#    copy/paste a token or an id.
+#
+# The 4xx answers are expected: they ARE the contract. Each call notes its
+# expected status.
+################################################################################
+
+@base = http://127.0.0.1:5000/api
+
+### ============================ AUTH ============================
+
+### register a client -> 201 (the "role" in the body is ignored)
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "alice@example.com", "password": "StrongPass123", "name": "Alice", "role": "admin" }
+
+### same email again -> 409
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "alice@example.com", "password": "StrongPass123", "name": "Alice" }
+
+### password shorter than 8 -> 400
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "weak@example.com", "password": "short", "name": "Weak" }
+
+### invalid email -> 400
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "not-an-email", "password": "StrongPass123", "name": "Bad" }
+
+### wrong password -> 401
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "alice@example.com", "password": "WrongPass999" }
+
+### a second client, for ownership isolation -> 201
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "bob@example.com", "password": "StrongPass123", "name": "Bob" }
+
+### log in as Alice -> 200 (token captured)
+# @name loginAlice
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "alice@example.com", "password": "StrongPass123" }
+
+### log in as Bob -> 200 (token captured)
+# @name loginBob
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "bob@example.com", "password": "StrongPass123" }
+
+### log in as the seeded admin -> 200 (token captured)
+# @name loginAdmin
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@digimarket.com", "password": "AdminPass123" }
+
+###
+
+# Tokens captured from the three logins above (resolved when used)
+@alice = {{loginAlice.response.body.$.access_token}}
+@bob = {{loginBob.response.body.$.access_token}}
+@admin = {{loginAdmin.response.body.$.access_token}}
+
+### ============================ PRODUCTS ============================
+
+### list products (public) -> 200, pagination envelope {items, page, ...}
+GET {{base}}/products
+
+### create without a token -> 401
+POST {{base}}/products
+Content-Type: application/json
+
+{ "name": "X", "description": "d", "category": "c", "price": 10, "stock": 5 }
+
+### create as a client -> 403
+POST {{base}}/products
+Content-Type: application/json
+Authorization: Bearer {{alice}}
+
+{ "name": "X", "description": "d", "category": "c", "price": 10, "stock": 5 }
+
+### create with a missing name -> 400
+POST {{base}}/products
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "description": "d", "category": "c", "price": 10, "stock": 5 }
+
+### create with a negative price -> 400
+POST {{base}}/products
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "name": "X", "description": "d", "category": "c", "price": -1, "stock": 5 }
+
+### create the demo product (stock 5) as admin -> 201 (id captured)
+# @name createProduct
+POST {{base}}/products
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "name": "Demo GPU", "description": "demo", "category": "Composants", "price": 100, "stock": 5 }
+
+###
+
+# Product id captured from the request above
+@pid = {{createProduct.response.body.$.id}}
+
+### get the product -> 200
+GET {{base}}/products/{{pid}}
+
+### get an unknown product -> 404
+GET {{base}}/products/999999
+
+### search narrows the list -> 200
+GET {{base}}/products?search=Demo
+
+### ============================ ORDERS ============================
+
+### place an order without a token -> 401
+POST {{base}}/orders
+Content-Type: application/json
+
+{ "shipping_address": "1 rue de Test", "items": [ { "product_id": {{pid}}, "quantity": 1 } ] }
+
+### empty items -> 400
+POST {{base}}/orders
+Content-Type: application/json
+Authorization: Bearer {{alice}}
+
+{ "shipping_address": "1 rue de Test", "items": [] }
+
+### unknown product -> 400
+POST {{base}}/orders
+Content-Type: application/json
+Authorization: Bearer {{alice}}
+
+{ "shipping_address": "1 rue de Test", "items": [ { "product_id": 999999, "quantity": 1 } ] }
+
+### Alice places an order of 3 units -> 201, status "pending" (id captured)
+# @name createOrder
+POST {{base}}/orders
+Content-Type: application/json
+Authorization: Bearer {{alice}}
+
+{ "shipping_address": "1 rue de Test", "items": [ { "product_id": {{pid}}, "quantity": 3 } ] }
+
+###
+
+# Order id captured from the request above
+@oid = {{createOrder.response.body.$.id}}
+
+### Bob must not even learn Alice's order exists -> 404
+GET {{base}}/orders/{{oid}}
+Authorization: Bearer {{bob}}
+
+### the owner sees it -> 200
+GET {{base}}/orders/{{oid}}
+Authorization: Bearer {{alice}}
+
+### the admin sees it -> 200
+GET {{base}}/orders/{{oid}}
+Authorization: Bearer {{admin}}
+
+### --- PATCH guards ---
+
+### no token -> 401
+PATCH {{base}}/orders/{{oid}}
+Content-Type: application/json
+
+{ "status": "validated" }
+
+### a client cannot change the status -> 403
+PATCH {{base}}/orders/{{oid}}
+Content-Type: application/json
+Authorization: Bearer {{alice}}
+
+{ "status": "validated" }
+
+### unknown status -> 400
+PATCH {{base}}/orders/{{oid}}
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "status": "bogus" }
+
+### unknown order -> 404
+PATCH {{base}}/orders/999999
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "status": "validated" }
+
+### --- state machine ---
+
+### cannot ship a pending order (shipped only from validated) -> 409
+PATCH {{base}}/orders/{{oid}}
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "status": "shipped" }
+
+### validate -> 200 (stock 5 -> 2)
+PATCH {{base}}/orders/{{oid}}
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "status": "validated" }
+
+### stock after validation -> expect 2
+GET {{base}}/products/{{pid}}
+
+### re-validate an already validated order -> 409 (no double decrement)
+PATCH {{base}}/orders/{{oid}}
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "status": "validated" }
+
+### validated -> shipped -> 200
+PATCH {{base}}/orders/{{oid}}
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "status": "shipped" }
+
+### --- restock on cancellation ---
+
+### second order of 2 units -> 201 (id captured)
+# @name createOrder2
+POST {{base}}/orders
+Content-Type: application/json
+Authorization: Bearer {{alice}}
+
+{ "shipping_address": "1 rue de Test", "items": [ { "product_id": {{pid}}, "quantity": 2 } ] }
+
+###
+
+@oid2 = {{createOrder2.response.body.$.id}}
+
+### validate it -> 200 (stock 2 -> 0)
+PATCH {{base}}/orders/{{oid2}}
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "status": "validated" }
+
+### stock after second validation -> expect 0
+GET {{base}}/products/{{pid}}
+
+### cancel it -> 200 (stock 0 -> 2, restocked)
+PATCH {{base}}/orders/{{oid2}}
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "status": "cancelled" }
+
+### stock after cancellation -> expect 2
+GET {{base}}/products/{{pid}}
+
+### --- insufficient stock is atomic ---
+
+### third order of 5 units while only 2 remain -> 201 (id captured)
+# @name createOrder3
+POST {{base}}/orders
+Content-Type: application/json
+Authorization: Bearer {{alice}}
+
+{ "shipping_address": "1 rue de Test", "items": [ { "product_id": {{pid}}, "quantity": 5 } ] }
+
+###
+
+@oid3 = {{createOrder3.response.body.$.id}}
+
+### validating it is refused -> 409
+PATCH {{base}}/orders/{{oid3}}
+Content-Type: application/json
+Authorization: Bearer {{admin}}
+
+{ "status": "validated" }
+
+### stock unchanged after the refused validation -> expect 2
+GET {{base}}/products/{{pid}}
+
+### ============================ ORDER ITEMS ============================
+
+### items carry the nested product and the price snapshot -> 200
+GET {{base}}/orders/{{oid}}/items
+Authorization: Bearer {{alice}}
+
+### Bob cannot read Alice's order items -> 404
+GET {{base}}/orders/{{oid}}/items
+Authorization: Bearer {{bob}}

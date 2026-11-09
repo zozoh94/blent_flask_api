@@ -110,6 +110,28 @@ With the app running, the OpenAPI docs are served under `/api/docs`:
 Use the **Authorize** button in Swagger UI to send a JWT (obtained from
 `POST /api/auth/login`) on the protected routes.
 
+## Live contract demo
+
+`demo_contract.http` at the repo root walks through the whole API contract as a
+set of clickable requests, for the VS Code [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client)
+extension (`humao.rest-client`). Tokens and resource ids are captured from the
+named requests, so you never copy/paste a token or an id.
+
+It registers two clients and expects `201`, so start from an **empty database**:
+on a reused database those calls would answer `409` and the stock would already
+have moved.
+
+```bash
+rm -f instance/app.db
+uv run flask --app app init-db
+uv run flask --app app seed
+uv run flask --app app run
+```
+
+Then open `demo_contract.http` and click **Send Request** above each call, from
+top to bottom. Each call notes its expected status code, and the `4xx` answers
+are part of the contract, not errors.
+
 ## Endpoints
 
 Access: **Public** (no token), **Auth** (any logged-in user), **Admin** (admin only).
