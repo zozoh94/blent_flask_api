@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, abort, request
 from pydantic import ValidationError
 
 from app.auth.decorators import admin_required
@@ -66,7 +66,7 @@ def create_product():
     try:
         data = ProductCreate.model_validate(request.get_json())
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        abort(400, str(e))
 
     product = Product(**data.model_dump())
     db.session.add(product)

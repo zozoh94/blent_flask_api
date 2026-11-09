@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, abort, jsonify, request
 from flask_jwt_extended import create_access_token
 from pydantic import ValidationError
 
@@ -20,10 +20,10 @@ def register():
     try:
         data = UserCreate.model_validate(request.get_json())
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        abort(400, str(e))
 
     if User.query.filter_by(email=data.email).first():
-        return jsonify({"error": "Email already registered"}), 409
+        abort(409, "Email already registered")
 
     user = User(email=data.email, name=data.name)
     user.password = data.password
@@ -38,11 +38,11 @@ def login():
     try:
         data = LoginRequest.model_validate(request.get_json())
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        abort(400, str(e))
 
     user = User.query.filter_by(email=data.email).first()
     if not user or not user.check_password(data.password):
-        return jsonify({"error": "Invalid email or password"}), 401
+        abort(401, "Invalid email or password")
 
     token = create_access_token(identity=str(user.id))
     return jsonify({"access_token": token})
