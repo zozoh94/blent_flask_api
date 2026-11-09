@@ -181,17 +181,58 @@ def test_get_unknown_order_returns_404(client, admin_header):
 # --- PATCH /api/orders/<id> (admin only) ------------------------------------
 
 
-def test_admin_updates_the_order_status(
+def test_admin_moves_an_order_from_validation_to_shipping(
     client, client_header, admin_header, make_product
 ):
     product = make_product()
     order_id = _place_order(client, client_header, product.id).get_json()["id"]
 
+    # An order must be validated before it can ship.
+    validated = client.patch(
+        f"/api/orders/{order_id}", json={"status": "validated"}, headers=admin_header
+    )
+    assert validated.status_code == 200
+
+    shipped = client.patch(
+        f"/api/orders/{order_id}", json={"status": "shipped"}, headers=admin_header
+    )
+    assert shipped.status_code == 200
+    assert shipped.get_json()["status"] == "shipped"
+
+
+def test_shipping_a_pending_order_is_rejected(
+    client, client_header, admin_header, make_product
+):
+    product = make_product()
+    order_id = _place_order(client, client_header, product.id).get_json()["id"]
+
+    # Skipping validation is an illegal transition: the order stays pending.
     resp = client.patch(
         f"/api/orders/{order_id}", json={"status": "shipped"}, headers=admin_header
     )
+    assert resp.status_code == 409
+    order = client.get(f"/api/orders/{order_id}", headers=admin_header).get_json()
+    assert order["status"] == "pending"
+
+
+def test_cancelling_a_validated_order_restocks(
+    client, client_header, admin_header, make_product
+):
+    product = make_product(stock=10)
+    order_id = _place_order(client, client_header, product.id, quantity=3).get_json()[
+        "id"
+    ]
+
+    # Validation reserves 3 units (stock 10 -> 7); cancelling must give them back.
+    client.patch(
+        f"/api/orders/{order_id}", json={"status": "validated"}, headers=admin_header
+    )
+    resp = client.patch(
+        f"/api/orders/{order_id}", json={"status": "cancelled"}, headers=admin_header
+    )
     assert resp.status_code == 200
-    assert resp.get_json()["status"] == "shipped"
+    assert resp.get_json()["status"] == "cancelled"
+    assert client.get(f"/api/products/{product.id}").get_json()["stock"] == 10
 
 
 def test_patch_order_is_forbidden_for_clients(client, client_header, make_product):
@@ -287,7 +328,7 @@ def test_order_items_list_the_ordered_products(client, client_header, make_produ
     assert resp.status_code == 200
     items = resp.get_json()
     assert len(items) == 1
-    assert items[0]["product_id"] == product.id
+    assert items[0]["product"]["id"] == product.id
     assert items[0]["quantity"] == 4
     assert items[0]["unit_price"] == pytest.approx(15.0)
 
@@ -301,3 +342,17 @@ def test_client_cannot_see_another_clients_order_items(
     order_id = _place_order(client, alice, product.id).get_json()["id"]
 
     assert client.get(f"/api/orders/{order_id}/items", headers=bob).status_code == 404
+
+
+def test_admin_can_see_any_order_items(
+    client, client_header, admin_header, make_product
+):
+    product = make_product()
+    order_id = _place_order(client, client_header, product.id, quantity=2).get_json()[
+        "id"
+    ]
+
+    # The admin is not the owner but may inspect any order's content.
+    resp = client.get(f"/api/orders/{order_id}/items", headers=admin_header)
+    assert resp.status_code == 200
+    assert resp.get_json()[0]["product"]["id"] == product.id
