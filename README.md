@@ -67,6 +67,25 @@ With the app running, the OpenAPI docs are served under `/api/docs`:
 Use the **Authorize** button in Swagger UI to send a JWT (obtained from
 `POST /api/auth/login`) on the protected routes.
 
+## Endpoints
+
+Access: **Public** (no token), **Auth** (any logged-in user), **Admin** (admin only).
+
+| Method | Path | Access | Description |
+|--------|------|--------|-------------|
+| POST | `/api/auth/register` | Public | Create a client account |
+| POST | `/api/auth/login` | Public | Log in, returns a JWT access token |
+| GET | `/api/products` | Public | List products (paginated; `search`, `sort`, `order`, `page`, `per_page`) |
+| GET | `/api/products/<id>` | Public | Get one product |
+| POST | `/api/products` | Admin | Create a product |
+| PUT | `/api/products/<id>` | Admin | Update a product |
+| DELETE | `/api/products/<id>` | Admin | Delete a product |
+| GET | `/api/orders` | Auth | List orders (clients see their own, admins see all; `user_id` filter for admins) |
+| POST | `/api/orders` | Auth | Place an order |
+| GET | `/api/orders/<id>` | Auth | Get one order (owner or admin) |
+| PATCH | `/api/orders/<id>` | Admin | Change an order's status |
+| GET | `/api/orders/<id>/items` | Auth | List an order's items (owner or admin) |
+
 ## Run the tests
 
 ```bash
