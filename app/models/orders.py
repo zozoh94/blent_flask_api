@@ -19,9 +19,7 @@ class Order(db.Model):
     status: Mapped[str] = mapped_column(default="pending")
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
 
-    items: Mapped[list["OrderItem"]] = relationship(
-        back_populates="order", cascade="all, delete-orphan"
-    )
+    items: Mapped[list["OrderItem"]] = relationship(cascade="all, delete-orphan")
 
 
 class OrderItem(db.Model):
@@ -33,5 +31,4 @@ class OrderItem(db.Model):
     quantity: Mapped[int]
     unit_price: Mapped[float]
 
-    order: Mapped["Order"] = relationship(back_populates="items")
     product: Mapped["Product"] = relationship()
