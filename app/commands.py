@@ -25,13 +25,13 @@ def init_db_command():
 # be tried out right away.
 SEED_USERS = [
     {
-        "email": "admin@digimarket.test",
+        "email": "admin@digimarket.com",
         "name": "Admin",
         "role": "admin",
         "password": "AdminPass123",
     },
     {
-        "email": "client@digimarket.test",
+        "email": "client@digimarket.com",
         "name": "Zoen Linhame",
         "role": "client",
         "password": "ClientPass123",
@@ -118,9 +118,7 @@ def seed_command():
         click.echo(f"+ {spec['name']} ({spec['category']})")
 
     # Orders come last: they need their client and products to exist first.
-    client = db.session.scalar(
-        db.select(User).filter_by(email="client@digimarket.test")
-    )
+    client = db.session.scalar(db.select(User).filter_by(email="client@digimarket.com"))
     if db.session.scalar(db.select(Order).limit(1)):
         # Any existing order means we have already seeded: stay idempotent.
         click.echo("- orders already exist, skipped")

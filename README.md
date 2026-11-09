@@ -45,7 +45,7 @@ uv run flask --app app seed
 To promote an existing user to admin:
 
 ```bash
-uv run flask --app app grant-admin --email client@digimarket.test
+uv run flask --app app grant-admin --email client@digimarket.com
 ```
 
 ### Seeded data
@@ -54,8 +54,8 @@ uv run flask --app app grant-admin --email client@digimarket.test
 
 | Role | Email | Password |
 |------|-------|----------|
-| admin | `admin@digimarket.test` | `AdminPass123` |
-| client | `client@digimarket.test` | `ClientPass123` |
+| admin | `admin@digimarket.com` | `AdminPass123` |
+| client | `client@digimarket.com` | `ClientPass123` |
 
 **Products:**
 
@@ -97,7 +97,7 @@ curl http://127.0.0.1:5000/api/orders -H "Authorization: Bearer $TOKEN"
 ```
 
 Admin-only routes need an admin token: log in with the seeded admin account
-(`admin@digimarket.test` / `AdminPass123`) instead at step 2.
+(`admin@digimarket.com` / `AdminPass123`) instead at step 2.
 
 ## API documentation
 
