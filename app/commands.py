@@ -10,7 +10,7 @@ from flask import Flask
 from flask.cli import with_appcontext
 
 from app.extensions import db
-from app.models import Product, User
+from app.models import Order, OrderItem, Product, User
 
 
 @click.command("init-db")
@@ -72,6 +72,27 @@ SEED_PRODUCTS = [
 ]
 
 
+# A few orders placed by the seed client, left pending on purpose: an order only
+# consumes stock once an admin validates it, so seeding them as pending keeps the
+# catalog stock consistent. Products are named here; their ids are resolved at
+# insert time.
+SEED_ORDERS = [
+    {
+        "shipping_address": "1 rue du Test, 75001 Paris",
+        "items": [
+            {"product": "Clavier mécanique RGB", "quantity": 1},
+            {"product": "Souris gaming sans fil", "quantity": 2},
+        ],
+    },
+    {
+        "shipping_address": "1 rue du Test, 75001 Paris",
+        "items": [
+            {"product": 'Écran 27" 144 Hz', "quantity": 1},
+        ],
+    },
+]
+
+
 @click.command("seed")
 @with_appcontext
 def seed_command():
@@ -95,6 +116,39 @@ def seed_command():
 
         db.session.add(Product(**spec))
         click.echo(f"+ {spec['name']} ({spec['category']})")
+
+    # Orders come last: they need their client and products to exist first.
+    client = db.session.scalar(
+        db.select(User).filter_by(email="client@digimarket.test")
+    )
+    if db.session.scalar(db.select(Order).limit(1)):
+        # Any existing order means we have already seeded: stay idempotent.
+        click.echo("- orders already exist, skipped")
+    elif client is None:
+        click.echo("- no seed client, orders skipped")
+    else:
+        for spec in SEED_ORDERS:
+            # Resolve each named product and snapshot its price, as the API does.
+            items = [
+                OrderItem(
+                    product_id=product.id,
+                    quantity=line["quantity"],
+                    unit_price=product.price,
+                )
+                for line in spec["items"]
+                if (
+                    product := db.session.scalar(
+                        db.select(Product).filter_by(name=line["product"])
+                    )
+                )
+            ]
+            order = Order(
+                user_id=client.id,
+                shipping_address=spec["shipping_address"],
+                items=items,
+            )
+            db.session.add(order)
+            click.echo(f"+ order for {client.email} ({len(items)} item(s))")
 
     db.session.commit()
     click.echo("Seed complete.")
