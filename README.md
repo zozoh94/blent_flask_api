@@ -86,6 +86,38 @@ Access: **Public** (no token), **Auth** (any logged-in user), **Admin** (admin o
 | PATCH | `/api/orders/<id>` | Admin | Change an order's status |
 | GET | `/api/orders/<id>/items` | Auth | List an order's items (owner or admin) |
 
+## Order status workflow
+
+An order moves through four statuses. Only an admin changes it, via
+`PATCH /api/orders/<id>`. Stock is reserved exactly while an order is
+`validated`: validating consumes stock, cancelling a validated order gives it
+back, and an order can only ship once it has been validated.
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending
+    pending --> validated: reserve stock
+    pending --> cancelled
+    validated --> shipped
+    validated --> cancelled: restock
+    cancelled --> validated: reserve stock
+```
+
+Only these transitions are allowed; each has a defined stock effect:
+
+| From | To | Stock effect |
+|------|-----|--------------|
+| pending | validated | reserve (decrement) |
+| pending | cancelled | none |
+| validated | shipped | none |
+| validated | cancelled | restock (re-increment) |
+| cancelled | validated | reserve (decrement) |
+
+Any other transition (for example `pending -> shipped`, or re-validating an
+already validated order) is rejected with **409**. Validating when a product
+lacks the required stock is also rejected with **409**, atomically: nothing is
+decremented and the order stays unvalidated.
+
 ## Run the tests
 
 ```bash
