@@ -8,6 +8,7 @@ dependencies = [
     "flask-sqlalchemy>=3.1",
     "flask-jwt-extended>=4.6",
     "pydantic[email]>=2.14.1",
+    "spectree>=3.0.0",
 ]
 
 # Dev-only tools, installed by `uv sync` but kept out of the runtime deps.

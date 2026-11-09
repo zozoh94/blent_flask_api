@@ -1,8 +1,9 @@
 from flask import Blueprint, abort, request
 from pydantic import ValidationError
+from spectree import Response
 
 from app.auth.decorators import admin_required
-from app.extensions import db
+from app.extensions import BEARER, api, db
 from app.models import Product
 
 from .schemas import (
@@ -22,6 +23,11 @@ SORTABLE = {
 
 
 @bp.get("")
+@api.validate(
+    resp=Response("HTTP_200"),
+    tags=["products"],
+    skip_validation=True,
+)
 def get_products():
     """List products"""
     page = request.args.get("page", 1, type=int)
@@ -53,6 +59,11 @@ def get_products():
 
 
 @bp.get("<id>")
+@api.validate(
+    resp=Response("HTTP_404", HTTP_200=ProductDetailOut),
+    tags=["products"],
+    skip_validation=True,
+)
 def get_product(id: int):
     """Get a product by ID"""
     product = db.get_or_404(Product, id, description="Product not found")
@@ -60,6 +71,13 @@ def get_product(id: int):
 
 
 @bp.post("")
+@api.validate(
+    json=ProductCreate,
+    resp=Response("HTTP_400", "HTTP_401", "HTTP_403", HTTP_201=ProductDetailOut),
+    tags=["products"],
+    security=BEARER,
+    skip_validation=True,
+)
 @admin_required
 def create_product():
     """Create a product"""
@@ -75,6 +93,15 @@ def create_product():
 
 
 @bp.put("<id>")
+@api.validate(
+    json=ProductCreate,
+    resp=Response(
+        "HTTP_400", "HTTP_401", "HTTP_403", "HTTP_404", HTTP_200=ProductDetailOut
+    ),
+    tags=["products"],
+    security=BEARER,
+    skip_validation=True,
+)
 @admin_required
 def update_product(id: int):
     """Update a product"""
@@ -87,6 +114,12 @@ def update_product(id: int):
 
 
 @bp.delete("<id>")
+@api.validate(
+    resp=Response("HTTP_204", "HTTP_401", "HTTP_403", "HTTP_404"),
+    tags=["products"],
+    security=BEARER,
+    skip_validation=True,
+)
 @admin_required
 def delete_product(id: int):
     """Delete a product"""

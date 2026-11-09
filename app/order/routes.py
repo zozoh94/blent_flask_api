@@ -1,9 +1,10 @@
 from flask import Blueprint, abort, request
 from flask_jwt_extended import current_user, jwt_required
 from pydantic import ValidationError
+from spectree import Response
 
 from app.auth.decorators import admin_required
-from app.extensions import db
+from app.extensions import BEARER, api, db
 from app.models import Order, OrderItem, Product
 
 from .schemas import OrderCreate, OrderItemOut, OrderOut, OrderUpdate
@@ -26,6 +27,12 @@ def _order_for_current_user(order_id):
 
 
 @bp.get("")
+@api.validate(
+    resp=Response("HTTP_200", "HTTP_401"),
+    tags=["orders"],
+    security=BEARER,
+    skip_validation=True,
+)
 @jwt_required()
 def get_orders():
     """List orders"""
@@ -60,6 +67,12 @@ def get_orders():
 
 
 @bp.get("<id>")
+@api.validate(
+    resp=Response("HTTP_401", "HTTP_404", HTTP_200=OrderOut),
+    tags=["orders"],
+    security=BEARER,
+    skip_validation=True,
+)
 @jwt_required()
 def get_order(id: int):
     """Get an order by ID"""
@@ -68,6 +81,13 @@ def get_order(id: int):
 
 
 @bp.post("")
+@api.validate(
+    json=OrderCreate,
+    resp=Response("HTTP_400", "HTTP_401", HTTP_201=OrderOut),
+    tags=["orders"],
+    security=BEARER,
+    skip_validation=True,
+)
 @jwt_required()
 def create_order():
     """Create an order"""
@@ -101,6 +121,15 @@ def create_order():
 
 
 @bp.patch("<id>")
+@api.validate(
+    json=OrderUpdate,
+    resp=Response(
+        "HTTP_400", "HTTP_401", "HTTP_403", "HTTP_404", "HTTP_409", HTTP_200=OrderOut
+    ),
+    tags=["orders"],
+    security=BEARER,
+    skip_validation=True,
+)
 @admin_required
 def update_order(id: int):
     """Update an order by ID (only status)"""
@@ -121,6 +150,12 @@ def update_order(id: int):
 
 
 @bp.get("<id>/items")
+@api.validate(
+    resp=Response("HTTP_200", "HTTP_401", "HTTP_404"),
+    tags=["orders"],
+    security=BEARER,
+    skip_validation=True,
+)
 @jwt_required()
 def get_order_items(id: int):
     """List order items"""
