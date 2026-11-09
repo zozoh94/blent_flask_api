@@ -26,6 +26,30 @@ uv run flask --app app init-db
 uv run flask --app app seed
 ```
 
+`seed` is idempotent: re-running it skips anything already present.
+
+### Seeded data
+
+**Users** (email / password):
+
+| Role | Email | Password |
+|------|-------|----------|
+| admin | `admin@digimarket.test` | `AdminPass123` |
+| client | `client@digimarket.test` | `ClientPass123` |
+
+**Products:**
+
+| Name | Category | Price | Stock |
+|------|----------|------:|------:|
+| Clavier mécanique RGB | Périphériques | 89.99 | 40 |
+| Souris gaming sans fil | Périphériques | 49.99 | 60 |
+| Écran 27" 144 Hz | Écrans | 299.00 | 15 |
+| SSD NVMe 1 To | Stockage | 109.90 | 80 |
+
+**Orders:** two `pending` orders for the seed client (one with 1x Clavier and
+2x Souris, one with 1x Écran). They are left pending on purpose, since stock is
+only consumed once an admin validates an order.
+
 ## Run the app
 
 ```bash
