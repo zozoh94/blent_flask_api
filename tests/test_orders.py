@@ -117,7 +117,8 @@ def test_client_sees_only_their_own_orders(client, auth_header_factory, make_pro
     order_a = _place_order(client, alice, product.id).get_json()["id"]
     order_b = _place_order(client, bob, product.id).get_json()["id"]
 
-    ids = [o["id"] for o in client.get("/api/orders", headers=alice).get_json()]
+    body = client.get("/api/orders", headers=alice).get_json()
+    ids = [o["id"] for o in body["items"]]
     assert order_a in ids
     assert order_b not in ids
 
@@ -131,7 +132,8 @@ def test_admin_sees_every_order(
     order_a = _place_order(client, alice, product.id).get_json()["id"]
     order_b = _place_order(client, bob, product.id).get_json()["id"]
 
-    ids = [o["id"] for o in client.get("/api/orders", headers=admin_header).get_json()]
+    body = client.get("/api/orders", headers=admin_header).get_json()
+    ids = [o["id"] for o in body["items"]]
     assert {order_a, order_b} <= set(ids)
 
 
