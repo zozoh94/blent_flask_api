@@ -1,6 +1,6 @@
 from flask import Flask
 
-from app.extensions import db, jwt
+from app.extensions import api, db, jwt
 
 __all__ = ["create_app", "db"]
 
@@ -30,6 +30,9 @@ def create_app(test_config=None):
     from app.errors import register_error_handlers
 
     register_error_handlers(app)
+
+    # Serve the generated OpenAPI docs once every route is registered.
+    api.register(app)
 
     with app.app_context():
         from app import models  # noqa: F401

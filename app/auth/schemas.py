@@ -22,3 +22,7 @@ class UserOut(BaseModel):
     name: str
     role: str
     created_at: datetime
+
+
+class TokenOut(BaseModel):
+    access_token: str

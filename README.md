@@ -32,6 +32,17 @@ uv run flask --app app seed
 uv run flask --app app run
 ```
 
+## API documentation
+
+With the app running, the OpenAPI docs are served under `/api/docs`:
+
+- Swagger UI: http://127.0.0.1:5000/api/docs/swagger
+- ReDoc: http://127.0.0.1:5000/api/docs/redoc
+- Raw OpenAPI spec: http://127.0.0.1:5000/api/docs/openapi.json
+
+Use the **Authorize** button in Swagger UI to send a JWT (obtained from
+`POST /api/auth/login`) on the protected routes.
+
 ## Run the tests
 
 ```bash

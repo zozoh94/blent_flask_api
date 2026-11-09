@@ -1,12 +1,14 @@
 from flask import Blueprint, abort, jsonify, request
 from flask_jwt_extended import create_access_token
 from pydantic import ValidationError
+from spectree import Response
 
-from app.extensions import db
+from app.extensions import api, db
 from app.models import User
 
 from .schemas import (
     LoginRequest,
+    TokenOut,
     UserCreate,
     UserOut,
 )
@@ -15,6 +17,12 @@ bp = Blueprint("auth", __name__)
 
 
 @bp.post("/register")
+@api.validate(
+    json=UserCreate,
+    resp=Response("HTTP_400", "HTTP_409", HTTP_201=UserOut),
+    tags=["auth"],
+    skip_validation=True,
+)
 def register():
     """Create a new client account from an email, a password and a name."""
     try:
@@ -33,6 +41,12 @@ def register():
 
 
 @bp.post("/login")
+@api.validate(
+    json=LoginRequest,
+    resp=Response("HTTP_400", "HTTP_401", HTTP_200=TokenOut),
+    tags=["auth"],
+    skip_validation=True,
+)
 def login():
     """Check credentials and hand back a JWT access token."""
     try:
