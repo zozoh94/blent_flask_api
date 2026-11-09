@@ -7,6 +7,7 @@ __all__ = ["create_app", "db"]
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
+    app.json.ensure_ascii = False
 
     app.config.from_object("app.config.DefaultConfig")
     if test_config is not None:
