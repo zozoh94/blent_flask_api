@@ -106,7 +106,10 @@ def create_product():
 def update_product(id: int):
     """Update a product"""
     product = db.get_or_404(Product, id, description="Product not found")
-    data = ProductCreate.model_validate(request.get_json())
+    try:
+        data = ProductCreate.model_validate(request.get_json())
+    except ValidationError as e:
+        abort(400, str(e))
     for key, value in data.model_dump().items():
         setattr(product, key, value)
     db.session.commit()
