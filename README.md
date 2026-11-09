@@ -17,6 +17,20 @@ uv sync
 This creates an isolated virtual environment and installs both the runtime and
 the dev dependencies.
 
+## Configuration
+
+Settings have dev-friendly defaults and are overridden with environment
+variables:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `JWT_SECRET_KEY` | `change-me-in-prod` | Secret used to sign JWTs. Set a strong value in production. |
+| `DATABASE_URL` | `sqlite:///app.db` | SQLAlchemy database URI. |
+
+```bash
+export JWT_SECRET_KEY="a-long-random-secret"
+```
+
 ## Initialize the database
 
 Create the tables, then (optionally) load some test data:
@@ -27,6 +41,12 @@ uv run flask --app app seed
 ```
 
 `seed` is idempotent: re-running it skips anything already present.
+
+To promote an existing user to admin:
+
+```bash
+uv run flask --app app grant-admin --email client@digimarket.test
+```
 
 ### Seeded data
 
@@ -55,6 +75,29 @@ only consumed once an admin validates an order.
 ```bash
 uv run flask --app app run
 ```
+
+## Quickstart
+
+Register, log in to get a token, then call an authenticated route with it:
+
+```bash
+# 1. Create a client account
+curl -X POST http://127.0.0.1:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "alice@example.com", "password": "StrongPass123", "name": "Alice"}'
+
+# 2. Log in and capture the access token
+TOKEN=$(curl -s -X POST http://127.0.0.1:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "alice@example.com", "password": "StrongPass123"}' \
+  | python -c "import sys, json; print(json.load(sys.stdin)['access_token'])")
+
+# 3. Call an authenticated route with the bearer token
+curl http://127.0.0.1:5000/api/orders -H "Authorization: Bearer $TOKEN"
+```
+
+Admin-only routes need an admin token: log in with the seeded admin account
+(`admin@digimarket.test` / `AdminPass123`) instead at step 2.
 
 ## API documentation
 
@@ -85,6 +128,31 @@ Access: **Public** (no token), **Auth** (any logged-in user), **Admin** (admin o
 | GET | `/api/orders/<id>` | Auth | Get one order (owner or admin) |
 | PATCH | `/api/orders/<id>` | Admin | Change an order's status |
 | GET | `/api/orders/<id>/items` | Auth | List an order's items (owner or admin) |
+
+## Response format
+
+### Lists
+
+List endpoints (`GET /api/products`, `GET /api/orders`) return a pagination
+envelope; the rows are under `items`:
+
+```json
+{
+  "items": [],
+  "page": 1,
+  "per_page": 20,
+  "total": 42,
+  "pages": 3
+}
+```
+
+### Errors
+
+Errors return the matching HTTP status code and a JSON body:
+
+```json
+{ "error": "Email already registered" }
+```
 
 ## Order status workflow
 
