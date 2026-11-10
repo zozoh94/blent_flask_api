@@ -140,8 +140,9 @@ Access: **Public** (no token), **Auth** (any logged-in user), **Admin** (admin o
 |--------|------|--------|-------------|
 | POST | `/api/auth/register` | Public | Create a client account |
 | POST | `/api/auth/login` | Public | Log in, returns a JWT access token |
-| GET | `/api/products` | Public | List products (paginated; `search`, `sort`, `order`, `page`, `per_page`) |
+| GET | `/api/products` | Public | List products (paginated; `search`, `category`, `sort`, `order`, `page`, `per_page`) |
 | GET | `/api/products/<id>` | Public | Get one product |
+| GET | `/api/categories` | Public | List the distinct product categories |
 | POST | `/api/products` | Admin | Create a product |
 | PUT | `/api/products/<id>` | Admin | Update a product |
 | DELETE | `/api/products/<id>` | Admin | Delete a product |
@@ -150,6 +151,9 @@ Access: **Public** (no token), **Auth** (any logged-in user), **Admin** (admin o
 | GET | `/api/orders/<id>` | Auth | Get one order (owner or admin) |
 | PATCH | `/api/orders/<id>` | Admin | Change an order's status |
 | GET | `/api/orders/<id>/items` | Auth | List an order's items (owner or admin) |
+
+The `category` filter on `GET /api/products` is an exact match; the available
+values are those returned by `GET /api/categories`.
 
 ## Response format
 
