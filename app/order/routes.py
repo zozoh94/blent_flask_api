@@ -100,7 +100,7 @@ def create_order():
     for item in data.items:
         product = db.session.get(Product, item.product_id)
         if product is None:
-            abort(400, description=f"Product {id} not found")
+            abort(400, description=f"Product {item.product_id} not found")
 
         items.append(
             OrderItem(
