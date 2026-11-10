@@ -103,6 +103,70 @@ def test_listing_is_paginated(client, make_product):
     assert second["page"] == 2
 
 
+# --- GET /api/products?category= (public) -----------------------------------
+
+
+def test_category_filter_keeps_only_that_category(client, make_product):
+    # Two categories in the catalog; the filter must isolate one of them.
+    make_product(name="Clavier", category="Périphériques")
+    make_product(name="Souris", category="Périphériques")
+    make_product(name="Écran", category="Écrans")
+
+    resp = client.get("/api/products?category=Périphériques")
+    assert resp.status_code == 200
+    names = {p["name"] for p in resp.get_json()["items"]}
+    # The screen, in another category, must not leak into the result.
+    assert names == {"Clavier", "Souris"}
+
+
+def test_category_filter_is_an_exact_match(client, make_product):
+    # The filter is a closed-list exact match, not a partial one: a prefix of a
+    # real category must return nothing, otherwise the facet would be ambiguous.
+    make_product(name="Écran", category="Écrans")
+
+    resp = client.get("/api/products?category=Écr")
+    assert resp.status_code == 200
+    assert resp.get_json()["items"] == []
+
+
+def test_category_filter_combines_with_search(client, make_product):
+    # category and search are cumulative (AND), not alternatives: only the row
+    # matching both survives. Descriptions are distinct so the search can only
+    # match on the name, not on the shared default description.
+    make_product(
+        name="Clavier mécanique", category="Périphériques", description="keyboard"
+    )
+    make_product(name="Souris gaming", category="Périphériques", description="mouse")
+    make_product(name="Clavier souple", category="Écrans", description="other keyboard")
+
+    resp = client.get("/api/products?category=Périphériques&search=Clavier")
+    assert resp.status_code == 200
+    names = [p["name"] for p in resp.get_json()["items"]]
+    assert names == ["Clavier mécanique"]
+
+
+# --- GET /api/categories (public) -------------------------------------------
+
+
+def test_categories_lists_the_distinct_categories_sorted(client, make_product):
+    # Two products share a category: it must appear once, and the list is sorted
+    # so the facet is stable for the client.
+    make_product(name="Clavier", category="Périphériques")
+    make_product(name="Souris", category="Périphériques")
+    make_product(name="Écran", category="Écrans")
+
+    resp = client.get("/api/categories")
+    assert resp.status_code == 200
+    assert resp.get_json()["items"] == ["Périphériques", "Écrans"]
+
+
+def test_categories_is_public_and_empty_without_data(client):
+    # No token needed, and an empty catalog yields an empty facet, not a 404.
+    resp = client.get("/api/categories")
+    assert resp.status_code == 200
+    assert resp.get_json()["items"] == []
+
+
 # --- POST /api/products (admin only) ----------------------------------------
 
 
