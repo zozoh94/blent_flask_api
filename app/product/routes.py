@@ -13,6 +13,7 @@ from .schemas import (
 )
 
 bp = Blueprint("product", __name__)
+bp_category = Blueprint("category", __name__)
 
 SORTABLE = {
     "name": Product.name,
@@ -37,10 +38,18 @@ def get_products():
     column = SORTABLE.get(sort, Product.created_at)
     column = column.desc() if order == "desc" else column.asc()
     search = request.args.get("search")
+    category = request.args.get("category", None)
 
     query = db.select(Product)
     if search:
-        query = query.where(Product.name.ilike(f"%{search}%"))
+        query = query.where(
+            db.or_(
+                Product.name.ilike(f"%{search}%"),
+                Product.description.ilike(f"%{search}%"),
+            )
+        )
+    if category:
+        query = query.where(Product.category == category)
     query = query.order_by(column)
 
     pagination = db.paginate(
@@ -130,3 +139,12 @@ def delete_product(id: int):
     db.session.delete(product)
     db.session.commit()
     return "", 204
+
+
+@bp_category.get("")
+@api.validate(resp=Response("HTTP_200"), tags=["products"], skip_validation=True)
+def get_categories():
+    categories = db.session.scalars(
+        db.select(Product.category).distinct().order_by(Product.category)
+    ).all()
+    return {"items": categories}
