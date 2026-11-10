@@ -60,7 +60,7 @@ def get_orders():
     return {
         "items": [OrderOut.model_validate(o).model_dump() for o in pagination.items],
         "page": pagination.page,
-        "per_page": per_page,
+        "per_page": pagination.per_page,
         "total": pagination.total,
         "pages": pagination.pages,
     }
