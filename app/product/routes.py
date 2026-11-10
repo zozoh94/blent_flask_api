@@ -52,7 +52,7 @@ def get_products():
             ProductListOut.model_validate(p).model_dump() for p in pagination.items
         ],
         "page": pagination.page,
-        "per_page": per_page,
+        "per_page": pagination.per_page,
         "total": pagination.total,
         "pages": pagination.pages,
     }
