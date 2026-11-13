@@ -184,6 +184,20 @@ def test_admin_creates_a_product(client, admin_header):
     assert any(p["id"] == body["id"] for p in listing)
 
 
+def test_admin_creates_a_product_without_description(client, admin_header):
+    # The description is optional: a product without one is still sellable, so
+    # it must be created and stay readable, not crash on serialization.
+    no_description = {k: v for k, v in VALID_PRODUCT.items() if k != "description"}
+    resp = client.post("/api/products", json=no_description, headers=admin_header)
+    assert resp.status_code == 201
+    assert resp.get_json()["description"] is None
+
+    # Reading it back must work too, not only the creation response.
+    detail = client.get(f"/api/products/{resp.get_json()['id']}")
+    assert detail.status_code == 200
+    assert detail.get_json()["description"] is None
+
+
 def test_create_product_requires_authentication(client):
     # No token at all: the endpoint is not open to anonymous callers.
     resp = client.post("/api/products", json=VALID_PRODUCT)
