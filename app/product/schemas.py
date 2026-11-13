@@ -26,7 +26,7 @@ class ProductDetailOut(BaseModel):
     id: int
     name: str
     category: str
-    description: str
+    description: str | None = None
     price: float
     stock: int
     created_at: datetime
