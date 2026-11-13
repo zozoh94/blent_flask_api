@@ -66,7 +66,7 @@ def get_orders():
     }
 
 
-@bp.get("<id>")
+@bp.get("<int:id>")
 @api.validate(
     resp=Response("HTTP_401", "HTTP_404", HTTP_200=OrderOut),
     tags=["orders"],
@@ -120,7 +120,7 @@ def create_order():
     return OrderOut.model_validate(order).model_dump(), 201
 
 
-@bp.patch("<id>")
+@bp.patch("<int:id>")
 @api.validate(
     json=OrderUpdate,
     resp=Response(
@@ -149,7 +149,7 @@ def update_order(id: int):
     return OrderOut.model_validate(order).model_dump()
 
 
-@bp.get("<id>/items")
+@bp.get("<int:id>/items")
 @api.validate(
     resp=Response("HTTP_200", "HTTP_401", "HTTP_404"),
     tags=["orders"],

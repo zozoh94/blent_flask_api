@@ -67,7 +67,7 @@ def get_products():
     }
 
 
-@bp.get("<id>")
+@bp.get("<int:id>")
 @api.validate(
     resp=Response("HTTP_404", HTTP_200=ProductDetailOut),
     tags=["products"],
@@ -101,7 +101,7 @@ def create_product():
     return ProductDetailOut.model_validate(product).model_dump(mode="json"), 201
 
 
-@bp.put("<id>")
+@bp.put("<int:id>")
 @api.validate(
     json=ProductCreate,
     resp=Response(
@@ -125,7 +125,7 @@ def update_product(id: int):
     return ProductDetailOut.model_validate(product).model_dump()
 
 
-@bp.delete("<id>")
+@bp.delete("<int:id>")
 @api.validate(
     resp=Response("HTTP_204", "HTTP_401", "HTTP_403", "HTTP_404"),
     tags=["products"],
